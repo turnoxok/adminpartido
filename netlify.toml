@@ -1,6 +1,4 @@
 [build]
-  publish = "."           # carpeta donde está tu index.html
-  functions = "netlify/functions"  # carpeta con proxy.js
-
-[dev]
+  publish = "."           # carpeta donde está index.html
+  command = ""            # sin build
   functions = "netlify/functions"

@@ -43,6 +43,8 @@ input[type=checkbox]{margin-right:5px;}
 <script>
 const URL_PROXY = "/.netlify/functions/proxy";
 let rol=null, usuarioActual=null, claveActual=null;
+  
+let estadoItems = {};   // para guardar localmente estados de cada item
 
 // LOGIN
 async function login(){

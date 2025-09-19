@@ -216,11 +216,53 @@ button:hover {
     font-size: 16px;
   }
 }
+/* ===== LOADER ===== */
+#loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #084D1F;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+}
+
+#loader img {
+  width: 120px;
+  height: auto;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+#loader p {
+  color: #F5F6F2;
+  margin-top: 20px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.hidden {
+  display: none !important;
+}
 
 </style>
 </head>
 <body>
-
+<!-- LOADER -->
+<div id="loader">
+  <img src="https://i.ibb.co/GfJfM48J/Tilcara-logo-con-sombra.png" alt="Escudo del Club">
+  <p>Ya casi...</p>
+</div>
 <!-- Portada -->
   <div class="portada">
     <img src="https://i.ibb.co/jvFxXN4M/Tilcara-portada-precios.png" alt="Encuentro Rugby Veteranos">
@@ -243,14 +285,26 @@ button:hover {
 
 <div id="menuContainer"></div>
 </div>
-
 <script>
 const URL_PROXY = "/.netlify/functions/proxy";
 let rol=null, usuarioActual=null, claveActual=null;
 let estadoItems = {};   // para guardar localmente estados de cada item
 
+const loader = document.getElementById("loader");
+
+// Funciones para mostrar y ocultar loader
+function showLoader() { loader.classList.remove("hidden"); }
+function hideLoader() { loader.classList.add("hidden"); }
+
+// Mostrar loader al inicio mientras carga la portada
+window.addEventListener("load", () => {
+  showLoader();
+  setTimeout(() => hideLoader(), 1200); // se oculta después de 1.2s
+});
+
 // LOGIN
 async function login(){
+  showLoader();
   usuarioActual=document.getElementById("user").value;
   claveActual=document.getElementById("pass").value;
   try{
@@ -259,6 +313,7 @@ async function login(){
       body: JSON.stringify({action:"login",usuario:usuarioActual,clave:claveActual})
     });
     const data = await res.json();
+    hideLoader();
     if(data.status==="ok"){
       rol=data.rol;
       document.getElementById("rolText").innerText = usuarioActual;
@@ -267,11 +322,12 @@ async function login(){
       if(rol==="Dirigente")document.getElementById("formAgregarMenu").style.display="block";
       cargarMenu();
     }else alert(data.msg);
-  }catch(err){ alert("Error de conexión"); console.error(err);}
+  }catch(err){ hideLoader(); alert("Error de conexión"); console.error(err);}
 }
 
 // CARGAR MENUS
 async function cargarMenu(){
+  showLoader();
   try{
     const res = await fetch(URL_PROXY+"?hoja=Menu");
     const data = await res.json();
@@ -319,30 +375,31 @@ async function cargarMenu(){
           <button onclick="agregarItem('${menu}')">Agregar Item</button>
         </div>`;
       }
-
       
       html+="</div>";
     });
 
     document.getElementById("menuContainer").innerHTML=html;
-
   }catch(err){ 
     console.error(err); 
     alert("Error cargando menús"); 
+  } finally {
+    hideLoader();
   }
 }
-  
+
 // CREAR MENU
 function agregarMenu(){
   const nombreMenu=document.getElementById("nuevoMenu").value.trim();
   if(!nombreMenu){alert("Ingrese nombre del menú");return;}
+  showLoader();
   fetch(URL_PROXY,{
     method:"POST",
-    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarMenu",NombreMenu:nombreMenu})
+    body: JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarMenu",NombreMenu:nombreMenu})
   }).then(r=>r.json()).then(r=>{
     if(r.status==="ok"){document.getElementById("nuevoMenu").value="";cargarMenu();}
     else alert(r.msg);
-  });
+  }).finally(()=> hideLoader());
 }
 
 // AGREGAR ITEM
@@ -351,9 +408,10 @@ function agregarItem(menu){
   const desc=document.getElementById(`desc_${menu}`).value.trim();
   const precio=Number(document.getElementById(`precio_${menu}`).value.trim());
   if(!prov||!desc||isNaN(precio)){alert("Complete todos los campos");return;}
+  showLoader();
   fetch(URL_PROXY,{
     method:"POST",
-    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarItem",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Precio:precio})
+    body: JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarItem",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Precio:precio})
   }).then(r=>r.json()).then(r=>{
     if(r.status==="ok"){
       document.getElementById(`prov_${menu}`).value="";
@@ -361,15 +419,16 @@ function agregarItem(menu){
       document.getElementById(`precio_${menu}`).value="";
       cargarMenu();
     } else alert(r.msg);
-  });
+  }).finally(()=> hideLoader());
 }
 
 // SELECCIONAR / DESHABILITAR ITEM
 function actualizarSeleccion(menu,prov,desc,checked){
+  showLoader();
   fetch(URL_PROXY,{
     method:"POST",
-    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"seleccionar",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Seleccionado:checked})
-  }).then(r=>r.json()).then(r=>cargarMenu());
+    body: JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"seleccionar",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Seleccionado:checked})
+  }).then(r=>r.json()).then(r=>cargarMenu()).finally(()=> hideLoader());
 }
 
 // CAMBIAR ESTADO (gana/pierde/sin)
@@ -379,9 +438,10 @@ function cambiarEstado(menu,prov,desc,estadoActual){
   else if(estadoActual==="gana") nuevoEstado="pierde";
   else if(estadoActual==="pierde") nuevoEstado="sin";
 
+  showLoader();
   fetch(URL_PROXY,{
     method:"POST",
-    body:JSON.stringify({
+    body: JSON.stringify({
       usuario:usuarioActual,
       clave:claveActual,
       action:"cambiarEstado",
@@ -393,7 +453,7 @@ function cambiarEstado(menu,prov,desc,estadoActual){
   }).then(r=>r.json()).then(r=>{
     if(r.status==="ok") cargarMenu();
     else alert(r.msg);
-  });
+  }).finally(()=> hideLoader());
 }
 
 // CALCULAR TOTAL
@@ -414,5 +474,23 @@ function calcularTotal(menu){
 }
 </script>
 
+  <script>
+const loader = document.getElementById("loader");
+
+// Mostrar loader al inicio y ocultarlo luego de 1.2 segundos
+window.addEventListener("load", () => {
+  setTimeout(() => loader.classList.add("hidden"), 1200);
+});
+
+// Función para mostrar el loader manualmente
+function showLoader() {
+  loader.classList.remove("hidden");
+}
+
+// Función para ocultar el loader manualmente
+function hideLoader() {
+  loader.classList.add("hidden");
+}
+</script>
 </body>
 </html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rugby Menú</title>
+</head>
+<body>
+  <h1>Login</h1>
+  <input id="user" placeholder="Usuario">
+  <input id="pass" type="password" placeholder="Clave">
+  <button onclick="login()">Entrar</button>
+
+  <div id="app" style="display:none;">
+    <h2>Bienvenido <span id="rolText"></span></h2>
+    <div id="menuContainer"></div>
+  </div>
+
+<script>
+let rol = null;
+let usuarioActual = null;
+const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbzrK-X8nv1fUhP1iufE3ncDJaZLLphUWmw3_1Mzb66kUbYfIwt6lW_OEi88W8kOkU92ig/exec"; // Pegar URL del WebApp
+
+async function login(){
+  const user = document.getElementById("user").value;
+  const pass = document.getElementById("pass").value;
+
+  // Simple validación local (opcional: también podrías hacer fetch a Usuarios)
+  usuarioActual = user;
+  // Para simplificar, rol se obtiene al pedir GET y comparando usuario
+  const res = await fetch(URL_APPSCRIPT);
+  const data = await res.json();
+  const userObj = data.find(u=>u.NombreDelVotante===user); // simplificado
+  rol = (user==="dirigente")?"dirigente":"jugador";
+
+  document.getElementById("rolText").innerText = rol;
+  document.getElementById("app").style.display="block";
+  cargarMenu();
+}
+
+async function cargarMenu(){
+  const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
+  const data = await res.json();
+
+  // Agrupar por NombreMenu
+  const menus = {};
+  data.forEach(r=>{
+    if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[];
+    menus[r.NombreMenu].push(r);
+  });
+
+  let html="";
+  Object.keys(menus).forEach(menu=>{
+    html+=`<h3>${menu}</h3><ul>`;
+    menus[menu].forEach((item,i)=>{
+      const disabled = (rol==="jugador" || item.Seleccionado) ? "disabled" : "";
+      const checked = item.Seleccionado ? "checked" : "";
+      html+=`<li>
+        <input type="radio" name="${menu}" ${disabled} ${checked} onchange="seleccionar('${menu}','${item.Proveedor}')">
+        ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Total: $${item.Total}
+      </li>`;
+    });
+    html+="</ul>";
+  });
+  document.getElementById("menuContainer").innerHTML = html;
+}
+
+function seleccionar(menu, proveedor){
+  // Dirigentes pueden seleccionar
+  if(rol!=="dirigente") return;
+
+  // Enviar POST al WebApp
+  fetch(URL_APPSCRIPT, {
+    method:"POST",
+    body: JSON.stringify({
+      usuario: usuarioActual,
+      clave: document.getElementById("pass").value,
+      NombreMenu: menu,
+      Proveedor: proveedor,
+      Voto: 1
+    })
+  }).then(res=>res.json()).then(res=>{
+    if(res.status==="ok") cargarMenu();
+    else alert(res.msg);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 const fetch = require("node-fetch");
 
 exports.handler = async (event) => {
-  const urlScript = "https://script.google.com/macros/s/AKfycbzKSjF6dV8rXaw5PIUngYlMryYVo7q2FkpFdXq683tcvYvd4SBYmWQqH8Jgy5VxqrkSlQ/exec"; // reemplaza con tu Apps Script
+  const urlScript = "https://script.google.com/macros/s/AKfycbxHiIX0t8RI94sm6jFprvHS7oD9dT1OKdO_covXSMvDcjRxSIW60AIgPG9k8MjtKYRGEA/exec"; // reemplaza con tu Apps Script
   let options = {};
   
   if(event.httpMethod === "GET"){

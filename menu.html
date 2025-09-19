@@ -41,96 +41,129 @@ input[type=checkbox]{margin-right:5px;}
 </div>
 
 <script>
-const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbzjuzCkruKK2mtl4BFfmc624d7UkckypDT93yRdNAjZT08YccfJ3m_LfdraUQ7Fl0jl/exec"; // reemplaza tu WebApp
+const URL_PROXY = "/.netlify/functions/proxy";
 let rol=null, usuarioActual=null, claveActual=null;
 
 // LOGIN
 async function login(){
-usuarioActual=document.getElementById("user").value;
-claveActual=document.getElementById("pass").value;
-const res = await fetch(URL_APPSCRIPT,{method:"POST",body: JSON.stringify({action:"login",usuario:usuarioActual,clave:claveActual})});
-const data = await res.json();
-if(data.status==="ok"){
-rol=data.rol;
-document.getElementById("rolText").innerText=rol;
-document.getElementById("login").style.display="none";
-document.getElementById("app").style.display="block";
-if(rol==="Dirigente")document.getElementById("formAgregarMenu").style.display="block";
-cargarMenu();
-}else alert(data.msg);
+  usuarioActual=document.getElementById("user").value;
+  claveActual=document.getElementById("pass").value;
+  try{
+    const res = await fetch(URL_PROXY,{
+      method:"POST",
+      body: JSON.stringify({action:"login",usuario:usuarioActual,clave:claveActual})
+    });
+    const data = await res.json();
+    if(data.status==="ok"){
+      rol=data.rol;
+      document.getElementById("rolText").innerText=rol;
+      document.getElementById("login").style.display="none";
+      document.getElementById("app").style.display="block";
+      if(rol==="Dirigente")document.getElementById("formAgregarMenu").style.display="block";
+      cargarMenu();
+    }else alert(data.msg);
+  }catch(err){ alert("Error de conexión"); console.error(err);}
 }
 
 // CARGAR MENUS
 async function cargarMenu(){
-const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
-const data = await res.json();
-const menus={};
-data.forEach(r=>{if(!menus[r.NombreMenu])menus[r.NombreMenu]=[];menus[r.NombreMenu].push(r);});
+  try{
+    const res = await fetch(URL_PROXY+"?hoja=Menu");
+    const data = await res.json();
+    const menus = {};
+    data.forEach(r=>{ if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[]; menus[r.NombreMenu].push(r); });
 
-let html="";
-Object.keys(menus).forEach(menu=>{
-let totalMenu=0;
-html+=`<div class="menu"><h3>${menu}</h3><ul>`;
-menus[menu].forEach(item=>{
-const votos=item.Voto||0;
-const nombres=item.NombreDelVotante||"";
-const deshabilitado=item.Seleccionado?"deshabilitado":"";
-html+=`<li class="${deshabilitado}">
-<input type="checkbox" ${item.Seleccionado?'checked':''} ${rol!=="Dirigente"?"disabled":""} onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
-${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
-</li>`;
-if(item.Seleccionado) totalMenu+=Number(item.Precio);
-});
-html+=`</ul><h4>Total del Menú: $<span id="total_${menu}">${totalMenu}</span></h4>`;
+    let html="";
+    Object.keys(menus).forEach(menu=>{
+      let totalMenu=0;
+      html+=`<div class="menu"><h3>${menu}</h3><ul>`;
+      menus[menu].forEach(item=>{
+        const votos=item.Voto||0;
+        const nombres=item.NombreDelVotante||"";
+        const deshabilitado=item.Seleccionado?"deshabilitado":"";
+        html+=`<li class="${deshabilitado}">
+          <input type="checkbox" ${item.Seleccionado?'checked':''} ${rol!=="Dirigente"?"disabled":""}
+            onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
+          ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
+        </li>`;
+        if(item.Seleccionado) totalMenu+=Number(item.Precio);
+      });
+      html+="</ul>";
+      html+=`<h4>Total del Menú: $<span id="total_${menu}">${totalMenu}</span></h4>`;
 
-// Formulario para agregar ítem
-if(rol==="Dirigente"){
-html+=`<div class="form-agregar">
-<input id="prov_${menu}" placeholder="Proveedor">
-<input id="desc_${menu}" placeholder="Descripción">
-<input id="precio_${menu}" type="number" placeholder="Precio">
-<button onclick="agregarItem('${menu}')">Agregar Item</button>
-</div>`;
-}
+      if(rol==="Dirigente"){
+        html+=`<div class="form-agregar">
+          <input id="prov_${menu}" placeholder="Proveedor">
+          <input id="desc_${menu}" placeholder="Descripción">
+          <input id="precio_${menu}" type="number" placeholder="Precio">
+          <button onclick="agregarItem('${menu}')">Agregar Item</button>
+        </div>`;
+      }
 
-html+=`<button onclick="calcularTotal('${menu}')">Calcular Total</button>`;
-html+="</div>";
-});
-document.getElementById("menuContainer").innerHTML=html;
+      html+=`<button onclick="calcularTotal('${menu}')">Calcular Total</button>`;
+      html+="</div>";
+    });
+
+    document.getElementById("menuContainer").innerHTML=html;
+  }catch(err){ console.error(err); alert("Error cargando menús"); }
 }
 
 // CREAR MENU
 function agregarMenu(){
-const nombreMenu=document.getElementById("nuevoMenu").value.trim();
-if(!nombreMenu){alert("Ingrese nombre del menú");return;}
-fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarMenu",NombreMenu:nombreMenu})})
-.then(r=>r.json()).then(r=>{if(r.status==="ok"){document.getElementById("nuevoMenu").value="";cargarMenu();}else alert(r.msg);});
+  const nombreMenu=document.getElementById("nuevoMenu").value.trim();
+  if(!nombreMenu){alert("Ingrese nombre del menú");return;}
+  fetch(URL_PROXY,{
+    method:"POST",
+    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarMenu",NombreMenu:nombreMenu})
+  }).then(r=>r.json()).then(r=>{
+    if(r.status==="ok"){document.getElementById("nuevoMenu").value="";cargarMenu();}
+    else alert(r.msg);
+  });
 }
 
 // AGREGAR ITEM
 function agregarItem(menu){
-const prov=document.getElementById(`prov_${menu}`).value.trim();
-const desc=document.getElementById(`desc_${menu}`).value.trim();
-const precio=Number(document.getElementById(`precio_${menu}`).value.trim());
-if(!prov||!desc||isNaN(precio)){alert("Complete todos los campos");return;}
-fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarItem",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Precio:precio})})
-.then(r=>r.json()).then(r=>{if(r.status==="ok"){document.getElementById(`prov_${menu}`).value="";document.getElementById(`desc_${menu}`).value="";document.getElementById(`precio_${menu}`).value="";cargarMenu();}else alert(r.msg);});
+  const prov=document.getElementById(`prov_${menu}`).value.trim();
+  const desc=document.getElementById(`desc_${menu}`).value.trim();
+  const precio=Number(document.getElementById(`precio_${menu}`).value.trim());
+  if(!prov||!desc||isNaN(precio)){alert("Complete todos los campos");return;}
+  fetch(URL_PROXY,{
+    method:"POST",
+    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarItem",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Precio:precio})
+  }).then(r=>r.json()).then(r=>{
+    if(r.status==="ok"){
+      document.getElementById(`prov_${menu}`).value="";
+      document.getElementById(`desc_${menu}`).value="";
+      document.getElementById(`precio_${menu}`).value="";
+      cargarMenu();
+    } else alert(r.msg);
+  });
 }
 
-// VOTAR (al marcar checkbox)
+// SELECCIONAR / DESHABILITAR ITEM
 function actualizarSeleccion(menu,prov,desc,checked){
-fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"seleccionar",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Seleccionado:checked})})
-.then(r=>r.json()).then(r=>cargarMenu());
+  fetch(URL_PROXY,{
+    method:"POST",
+    body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"seleccionar",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Seleccionado:checked})
+  }).then(r=>r.json()).then(r=>cargarMenu());
 }
 
-// CALCULAR TOTAL por menú
+// CALCULAR TOTAL
 function calcularTotal(menu){
-const checkboxes=document.querySelectorAll(`.menu h3:contains('${menu}') ~ ul li input`);
-let total=0;
-checkboxes.forEach(c=>{
-if(c.checked)total+=Number(c.parentNode.innerText.split('- $')[1].split(' - ')[0]);
-});
-document.getElementById(`total_${menu}`).innerText=total;
+  const lis=document.querySelectorAll(`.menu`);
+  lis.forEach(li=>{
+    if(li.querySelector("h3").innerText===menu){
+      let total=0;
+      li.querySelectorAll("ul li").forEach(item=>{
+        const checkbox=item.querySelector("input");
+        if(checkbox.checked){
+          const precio=item.innerText.split('- $')[1].split(' - ')[0];
+          total+=Number(precio);
+        }
+      });
+      li.querySelector(`#total_${menu}`).innerText=total;
+    }
+  });
 }
 </script>
 </body>

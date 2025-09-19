@@ -78,6 +78,7 @@ async function cargarMenu(){
       let totalMenu=0;
       html+=`<div class="menu"><h3>${menu}</h3><ul>`;
       menus[menu].forEach(item=>{
+        if(!item.Proveedor || !item.Descripcion) return; // ignora filas vacías
         const votos=item.Voto||0;
         const nombres=item.NombreDelVotante||"";
         const deshabilitado=item.Seleccionado?"deshabilitado":"";

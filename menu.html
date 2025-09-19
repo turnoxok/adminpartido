@@ -1,46 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>Rugby Menú</title>
+<meta charset="UTF-8">
+<title>Evento Rugby - Menú</title>
+<style>
+  body { font-family: 'Courier New', monospace; background: #f0e6d2; color:#222; padding:20px;}
+  h1,h2,h3 { text-align:center; }
+  input, button { font-family: 'Courier New', monospace; padding:5px; margin:5px; border-radius:4px; border:1px solid #555;}
+  button { background:#cda34d; color:#fff; cursor:pointer; }
+  button:hover { background:#b5892f; }
+  .menu { background:#fff0d4; padding:10px; margin:10px 0; border:1px solid #cda34d; border-radius:6px;}
+  ul { list-style:none; padding-left:0; }
+  li { padding:4px 0; }
+  input[type=radio] { margin-right:5px; }
+  #app { display:none; }
+</style>
 </head>
 <body>
-  <h1>Login</h1>
+<h1>Evento Rugby - Menú</h1>
+
+<div id="login">
+  <h2>Login</h2>
   <input id="user" placeholder="Usuario">
   <input id="pass" type="password" placeholder="Clave">
   <button onclick="login()">Entrar</button>
+</div>
 
-  <div id="app" style="display:none;">
-    <h2>Bienvenido <span id="rolText"></span></h2>
-    <div id="menuContainer"></div>
-  </div>
+<div id="app">
+  <h2>Bienvenido <span id="rolText"></span></h2>
+  <div id="menuContainer"></div>
+  <h3>Total General: $<span id="totalGeneral">0</span></h3>
+</div>
 
 <script>
-let rol = null;
-let usuarioActual = null;
-const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbzrK-X8nv1fUhP1iufE3ncDJaZLLphUWmw3_1Mzb66kUbYfIwt6lW_OEi88W8kOkU92ig/exec"; // Pegar URL del WebApp
+const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbw0jCHGqSNThttU2-D4bBiu4t-QL_C2h9_OnclWaYqPP-y0SYZovks9EIZdkM_HvSwV_A/exec"; // reemplaza con tu WebApp
+let rol=null, usuarioActual=null, claveActual=null;
 
 async function login(){
-  const user = document.getElementById("user").value;
-  const pass = document.getElementById("pass").value;
+  usuarioActual = document.getElementById("user").value;
+  claveActual = document.getElementById("pass").value;
 
-  // Simple validación local (opcional: también podrías hacer fetch a Usuarios)
-  usuarioActual = user;
-  // Para simplificar, rol se obtiene al pedir GET y comparando usuario
-  const res = await fetch(URL_APPSCRIPT);
+  const res = await fetch(URL_APPSCRIPT,{
+    method:"POST",
+    body: JSON.stringify({action:"login", usuario:usuarioActual, clave:claveActual})
+  });
   const data = await res.json();
-  const userObj = data.find(u=>u.NombreDelVotante===user); // simplificado
-  rol = (user==="dirigente")?"dirigente":"jugador";
-
-  document.getElementById("rolText").innerText = rol;
-  document.getElementById("app").style.display="block";
-  cargarMenu();
+  if(data.status==="ok"){
+    rol = data.rol;
+    document.getElementById("rolText").innerText = rol;
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+    cargarMenu();
+  } else alert(data.msg);
 }
 
 async function cargarMenu(){
   const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
   const data = await res.json();
 
-  // Agrupar por NombreMenu
   const menus = {};
   data.forEach(r=>{
     if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[];
@@ -48,34 +65,35 @@ async function cargarMenu(){
   });
 
   let html="";
+  let totalGeneral = 0;
   Object.keys(menus).forEach(menu=>{
-    html+=`<h3>${menu}</h3><ul>`;
+    html+=`<div class="menu"><h3>${menu}</h3><ul>`;
     menus[menu].forEach((item,i)=>{
-      const disabled = (rol==="jugador" || item.Seleccionado) ? "disabled" : "";
-      const checked = item.Seleccionado ? "checked" : "";
+      const disabled = (rol!=="dirigente" && item.Seleccionado) || item.Seleccionado?"disabled":"";
+      const checked = item.Seleccionado?"checked":"";
+      if(item.Seleccionado) totalGeneral+=Number(item.Precio);
       html+=`<li>
         <input type="radio" name="${menu}" ${disabled} ${checked} onchange="seleccionar('${menu}','${item.Proveedor}')">
         ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Total: $${item.Total}
       </li>`;
     });
-    html+="</ul>";
+    html+="</ul></div>";
   });
+
   document.getElementById("menuContainer").innerHTML = html;
+  document.getElementById("totalGeneral").innerText = totalGeneral;
 }
 
 function seleccionar(menu, proveedor){
-  // Dirigentes pueden seleccionar
   if(rol!=="dirigente") return;
-
-  // Enviar POST al WebApp
-  fetch(URL_APPSCRIPT, {
+  fetch(URL_APPSCRIPT,{
     method:"POST",
     body: JSON.stringify({
       usuario: usuarioActual,
-      clave: document.getElementById("pass").value,
+      clave: claveActual,
       NombreMenu: menu,
       Proveedor: proveedor,
-      Voto: 1
+      Voto:1
     })
   }).then(res=>res.json()).then(res=>{
     if(res.status==="ok") cargarMenu();

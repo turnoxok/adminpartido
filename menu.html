@@ -13,6 +13,7 @@
   ul { list-style:none; padding-left:0; }
   li { padding:4px 0; }
   input[type=radio] { margin-right:5px; }
+  .form-agregar { margin:10px 0; }
   #app { display:none; }
 </style>
 </head>
@@ -28,14 +29,22 @@
 
 <div id="app">
   <h2>Bienvenido <span id="rolText"></span></h2>
+
+  <!-- Formulario para agregar Menú -->
+  <div id="formAgregarMenu" class="form-agregar" style="display:none;">
+    <h3>Agregar Menú</h3>
+    <input id="nuevoMenu" placeholder="Nombre del Menú">
+    <button onclick="agregarMenu()">Agregar Menú</button>
+  </div>
+
   <div id="menuContainer"></div>
-  <h3>Total General: $<span id="totalGeneral">0</span></h3>
 </div>
 
 <script>
-const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbw0jCHGqSNThttU2-D4bBiu4t-QL_C2h9_OnclWaYqPP-y0SYZovks9EIZdkM_HvSwV_A/exec"; // reemplaza con tu WebApp
+const URL_APPSCRIPT = "TU_URL_DE_APPSCRIPT"; // reemplazar con tu WebApp
 let rol=null, usuarioActual=null, claveActual=null;
 
+// LOGIN
 async function login(){
   usuarioActual = document.getElementById("user").value;
   claveActual = document.getElementById("pass").value;
@@ -50,10 +59,12 @@ async function login(){
     document.getElementById("rolText").innerText = rol;
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
+    if(rol==="dirigente") document.getElementById("formAgregarMenu").style.display="block";
     cargarMenu();
   } else alert(data.msg);
 }
 
+// CARGAR MENUS
 async function cargarMenu(){
   const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
   const data = await res.json();
@@ -65,25 +76,38 @@ async function cargarMenu(){
   });
 
   let html="";
-  let totalGeneral = 0;
   Object.keys(menus).forEach(menu=>{
+    let totalMenu = 0;
     html+=`<div class="menu"><h3>${menu}</h3><ul>`;
-    menus[menu].forEach((item,i)=>{
-      const disabled = (rol!=="dirigente" && item.Seleccionado) || item.Seleccionado?"disabled":"";
-      const checked = item.Seleccionado?"checked":"";
-      if(item.Seleccionado) totalGeneral+=Number(item.Precio);
+    menus[menu].forEach(item=>{
+      const disabled = rol!=="dirigente" || item.Seleccionado ? "disabled" : "";
+      const checked = item.Seleccionado ? "checked" : "";
+      if(item.Seleccionado) totalMenu+=Number(item.Precio);
       html+=`<li>
         <input type="radio" name="${menu}" ${disabled} ${checked} onchange="seleccionar('${menu}','${item.Proveedor}')">
-        ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Total: $${item.Total}
+        ${item.Proveedor} - ${item.Descripcion} - $${item.Precio}
       </li>`;
     });
-    html+="</ul></div>";
+    html+="</ul>";
+    html+=`<h4>Total del Menú: $${totalMenu}</h4>`;
+
+    // Formulario para agregar proveedor (solo dirigentes)
+    if(rol==="dirigente"){
+      html+=`<div class="form-agregar">
+        <input id="prov_${menu}" placeholder="Proveedor">
+        <input id="desc_${menu}" placeholder="Descripción">
+        <input id="precio_${menu}" type="number" placeholder="Precio">
+        <button onclick="agregarProveedor('${menu}')">Agregar Proveedor</button>
+      </div>`;
+    }
+
+    html+="</div>";
   });
 
   document.getElementById("menuContainer").innerHTML = html;
-  document.getElementById("totalGeneral").innerText = totalGeneral;
 }
 
+// SELECCIONAR PROVEEDOR
 function seleccionar(menu, proveedor){
   if(rol!=="dirigente") return;
   fetch(URL_APPSCRIPT,{
@@ -98,6 +122,56 @@ function seleccionar(menu, proveedor){
   }).then(res=>res.json()).then(res=>{
     if(res.status==="ok") cargarMenu();
     else alert(res.msg);
+  });
+}
+
+// AGREGAR MENU
+function agregarMenu(){
+  const nombreMenu = document.getElementById("nuevoMenu").value.trim();
+  if(!nombreMenu){ alert("Ingrese nombre del menú"); return; }
+
+  // Agregar una fila vacía al WebApp (solo nombreMenu)
+  fetch(URL_APPSCRIPT,{
+    method:"POST",
+    body: JSON.stringify({
+      usuario: usuarioActual,
+      clave: claveActual,
+      action:"agregarMenu",
+      NombreMenu: nombreMenu
+    })
+  }).then(res=>res.json()).then(res=>{
+    if(res.status==="ok"){
+      document.getElementById("nuevoMenu").value="";
+      cargarMenu();
+    } else alert(res.msg);
+  });
+}
+
+// AGREGAR PROVEEDOR
+function agregarProveedor(menu){
+  const prov = document.getElementById(`prov_${menu}`).value.trim();
+  const desc = document.getElementById(`desc_${menu}`).value.trim();
+  const precio = Number(document.getElementById(`precio_${menu}`).value.trim());
+  if(!prov || !desc || isNaN(precio)){ alert("Complete todos los campos"); return; }
+
+  fetch(URL_APPSCRIPT,{
+    method:"POST",
+    body: JSON.stringify({
+      usuario: usuarioActual,
+      clave: claveActual,
+      action:"agregarProveedor",
+      NombreMenu: menu,
+      Proveedor: prov,
+      Descripcion: desc,
+      Precio: precio
+    })
+  }).then(res=>res.json()).then(res=>{
+    if(res.status==="ok"){
+      document.getElementById(`prov_${menu}`).value="";
+      document.getElementById(`desc_${menu}`).value="";
+      document.getElementById(`precio_${menu}`).value="";
+      cargarMenu();
+    } else alert(res.msg);
   });
 }
 </script>

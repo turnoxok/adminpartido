@@ -43,7 +43,6 @@ input[type=checkbox]{margin-right:5px;}
 <script>
 const URL_PROXY = "/.netlify/functions/proxy";
 let rol=null, usuarioActual=null, claveActual=null;
-  
 let estadoItems = {};   // para guardar localmente estados de cada item
 
 // LOGIN
@@ -88,11 +87,8 @@ async function cargarMenu(){
 
         const votos = item.Voto || 0;
         const nombres = item.NombreDelVotante || "";
-
-        // Voto del usuario actual
         const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").includes(usuarioActual) : false;
 
-        // Estado del item: gana/pierde/sin
         const estado = item.Estado || "sin";
         let color="";
         if(estado==="gana") color="lightgreen";
@@ -102,7 +98,7 @@ async function cargarMenu(){
           <input type="checkbox" ${votoUsuario ? 'checked' : ''} ${rol !== "Dirigente" ? "disabled" : ""}
             onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
           ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
-          ${rol==="Dirigente" ? `<button onclick="cambiarEstado('${menu}','${item.Proveedor}','${item.Descripcion}')">${estado}</button>` : ''}
+          ${rol==="Dirigente" ? `<button onclick="cambiarEstado('${menu}','${item.Proveedor}','${item.Descripcion}','${estado}')">${estado}</button>` : ''}
         </li>`;
 
         if(estado === "gana") totalMenu += Number(item.Precio || 0);
@@ -172,6 +168,30 @@ function actualizarSeleccion(menu,prov,desc,checked){
   }).then(r=>r.json()).then(r=>cargarMenu());
 }
 
+// CAMBIAR ESTADO (gana/pierde/sin)
+function cambiarEstado(menu,prov,desc,estadoActual){
+  let nuevoEstado = "sin";
+  if(estadoActual==="sin") nuevoEstado="gana";
+  else if(estadoActual==="gana") nuevoEstado="pierde";
+  else if(estadoActual==="pierde") nuevoEstado="sin";
+
+  fetch(URL_PROXY,{
+    method:"POST",
+    body:JSON.stringify({
+      usuario:usuarioActual,
+      clave:claveActual,
+      action:"cambiarEstado",
+      NombreMenu:menu,
+      Proveedor:prov,
+      Descripcion:desc,
+      Estado:nuevoEstado
+    })
+  }).then(r=>r.json()).then(r=>{
+    if(r.status==="ok") cargarMenu();
+    else alert(r.msg);
+  });
+}
+
 // CALCULAR TOTAL
 function calcularTotal(menu){
   const lis=document.querySelectorAll(`.menu`);
@@ -179,8 +199,7 @@ function calcularTotal(menu){
     if(li.querySelector("h3").innerText===menu){
       let total=0;
       li.querySelectorAll("ul li").forEach(item=>{
-        const checkbox=item.querySelector("input");
-        if(checkbox.checked){
+        if(item.style.background==="lightgreen"){ // solo suma los que GANAN
           const precio=item.innerText.split('- $')[1].split(' - ')[0];
           total+=Number(precio);
         }
@@ -190,5 +209,6 @@ function calcularTotal(menu){
   });
 }
 </script>
+
 </body>
 </html>

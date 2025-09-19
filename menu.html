@@ -4,174 +4,133 @@
 <meta charset="UTF-8">
 <title>Evento Rugby - Menú</title>
 <style>
-  body { font-family: 'Courier New', monospace; background: #f0e6d2; color:#222; padding:20px;}
-  h1,h2,h3,h4 { text-align:center; margin:5px 0;}
-  input, button { font-family: 'Courier New', monospace; padding:5px; margin:5px; border-radius:4px; border:1px solid #555;}
-  button { background:#cda34d; color:#fff; cursor:pointer; }
-  button:hover { background:#b5892f; }
-  .menu { background:#fff0d4; padding:10px; margin:15px 0; border:1px solid #cda34d; border-radius:6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);}
-  ul { list-style:none; padding-left:0; }
-  li { padding:4px 0; }
-  input[type=radio] { margin-right:5px; }
-  .form-agregar { margin:10px 0; text-align:center; }
-  #app { display:none; }
+body { font-family:'Courier New', monospace; background:#f0e6d2; color:#222; padding:20px;}
+h1,h2,h3,h4{text-align:center;margin:5px 0;}
+input,button{padding:5px;margin:5px;border-radius:4px;border:1px solid #555;}
+button{background:#cda34d;color:#fff;cursor:pointer;}
+button:hover{background:#b5892f;}
+.menu{background:#fff0d4;padding:10px;margin:15px 0;border:1px solid #cda34d;border-radius:6px;box-shadow:2px 2px 5px rgba(0,0,0,0.1);}
+ul{list-style:none;padding-left:0;}
+li{padding:4px 0;}
+input[type=checkbox]{margin-right:5px;}
+.form-agregar{text-align:center;margin:10px 0;}
+#app{display:none;}
+.deshabilitado{background:#eee;color:#999;}
 </style>
 </head>
 <body>
 <h1>Evento Rugby - Menú</h1>
 
 <div id="login">
-  <h2>Login</h2>
-  <input id="user" placeholder="Usuario">
-  <input id="pass" type="password" placeholder="Clave">
-  <button onclick="login()">Entrar</button>
+<h2>Login</h2>
+<input id="user" placeholder="Usuario">
+<input id="pass" type="password" placeholder="Clave">
+<button onclick="login()">Entrar</button>
 </div>
 
 <div id="app">
-  <h2>Bienvenido <span id="rolText"></span></h2>
+<h2>Bienvenido <span id="rolText"></span></h2>
 
-  <!-- Formulario para agregar Menú -->
-  <div id="formAgregarMenu" class="form-agregar" style="display:none;">
-    <h3>Agregar Menú</h3>
-    <input id="nuevoMenu" placeholder="Nombre del Menú">
-    <button onclick="agregarMenu()">Agregar Menú</button>
-  </div>
+<div id="formAgregarMenu" class="form-agregar" style="display:none;">
+<h3>Crear Menú</h3>
+<input id="nuevoMenu" placeholder="Nombre del Menú">
+<button onclick="agregarMenu()">Agregar Menú</button>
+</div>
 
-  <div id="menuContainer"></div>
+<div id="menuContainer"></div>
 </div>
 
 <script>
-const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbzBa7VLNkSadT-pdf29Elf915bXwNQBOj8jnfYcdQ88OVQzsKpCs3WIl8I1rmNzhtT4zg/exec"; // reemplazar con tu WebApp
+const URL_APPSCRIPT = "https://script.google.com/macros/s/AKfycbzjuzCkruKK2mtl4BFfmc624d7UkckypDT93yRdNAjZT08YccfJ3m_LfdraUQ7Fl0jl/exec"; // reemplaza tu WebApp
 let rol=null, usuarioActual=null, claveActual=null;
 
 // LOGIN
 async function login(){
-  usuarioActual = document.getElementById("user").value;
-  claveActual = document.getElementById("pass").value;
-
-  const res = await fetch(URL_APPSCRIPT,{
-    method:"POST",
-    body: JSON.stringify({action:"login", usuario:usuarioActual, clave:claveActual})
-  });
-  const data = await res.json();
-  if(data.status==="ok"){
-    rol = data.rol;
-    document.getElementById("rolText").innerText = rol;
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="block";
-    if(rol==="dirigente") document.getElementById("formAgregarMenu").style.display="block";
-    cargarMenu();
-  } else alert(data.msg);
+usuarioActual=document.getElementById("user").value;
+claveActual=document.getElementById("pass").value;
+const res = await fetch(URL_APPSCRIPT,{method:"POST",body: JSON.stringify({action:"login",usuario:usuarioActual,clave:claveActual})});
+const data = await res.json();
+if(data.status==="ok"){
+rol=data.rol;
+document.getElementById("rolText").innerText=rol;
+document.getElementById("login").style.display="none";
+document.getElementById("app").style.display="block";
+if(rol==="Dirigente")document.getElementById("formAgregarMenu").style.display="block";
+cargarMenu();
+}else alert(data.msg);
 }
 
 // CARGAR MENUS
 async function cargarMenu(){
-  const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
-  const data = await res.json();
+const res = await fetch(URL_APPSCRIPT+"?hoja=Menu");
+const data = await res.json();
+const menus={};
+data.forEach(r=>{if(!menus[r.NombreMenu])menus[r.NombreMenu]=[];menus[r.NombreMenu].push(r);});
 
-  const menus = {};
-  data.forEach(r=>{
-    if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[];
-    menus[r.NombreMenu].push(r);
-  });
+let html="";
+Object.keys(menus).forEach(menu=>{
+let totalMenu=0;
+html+=`<div class="menu"><h3>${menu}</h3><ul>`;
+menus[menu].forEach(item=>{
+const votos=item.Voto||0;
+const nombres=item.NombreDelVotante||"";
+const deshabilitado=item.Seleccionado?"deshabilitado":"";
+html+=`<li class="${deshabilitado}">
+<input type="checkbox" ${item.Seleccionado?'checked':''} ${rol!=="Dirigente"?"disabled":""} onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
+${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
+</li>`;
+if(item.Seleccionado) totalMenu+=Number(item.Precio);
+});
+html+=`</ul><h4>Total del Menú: $<span id="total_${menu}">${totalMenu}</span></h4>`;
 
-  let html="";
-  Object.keys(menus).forEach(menu=>{
-    let totalMenu = 0;
-    html+=`<div class="menu"><h3>${menu}</h3><ul>`;
-    menus[menu].forEach(item=>{
-      const disabled = rol!=="dirigente" ? "disabled" : "";
-      const checked = item.Seleccionado ? "checked" : "";
-      if(item.Seleccionado) totalMenu += Number(item.Precio);
-      html+=`<li>
-        <input type="radio" name="${menu}" ${disabled} ${checked} onchange="seleccionar('${menu}','${item.Proveedor}')">
-        ${item.Proveedor} - ${item.Descripcion} - $${item.Precio}
-      </li>`;
-    });
-    html+="</ul>";
-    html+=`<h4>Total del Menú: $${totalMenu}</h4>`;
-
-    // Formulario para agregar proveedor (solo dirigentes)
-    if(rol==="dirigente"){
-      html+=`<div class="form-agregar">
-        <input id="prov_${menu}" placeholder="Proveedor">
-        <input id="desc_${menu}" placeholder="Descripción">
-        <input id="precio_${menu}" type="number" placeholder="Precio">
-        <button onclick="agregarProveedor('${menu}')">Agregar Proveedor</button>
-      </div>`;
-    }
-
-    html+="</div>";
-  });
-
-  document.getElementById("menuContainer").innerHTML = html;
+// Formulario para agregar ítem
+if(rol==="Dirigente"){
+html+=`<div class="form-agregar">
+<input id="prov_${menu}" placeholder="Proveedor">
+<input id="desc_${menu}" placeholder="Descripción">
+<input id="precio_${menu}" type="number" placeholder="Precio">
+<button onclick="agregarItem('${menu}')">Agregar Item</button>
+</div>`;
 }
 
-// SELECCIONAR PROVEEDOR
-function seleccionar(menu, proveedor){
-  if(rol!=="dirigente") return;
-  fetch(URL_APPSCRIPT,{
-    method:"POST",
-    body: JSON.stringify({
-      usuario: usuarioActual,
-      clave: claveActual,
-      NombreMenu: menu,
-      Proveedor: proveedor,
-      Voto:1
-    })
-  }).then(res=>res.json()).then(res=>{
-    if(res.status==="ok") cargarMenu();
-    else alert(res.msg);
-  });
+html+=`<button onclick="calcularTotal('${menu}')">Calcular Total</button>`;
+html+="</div>";
+});
+document.getElementById("menuContainer").innerHTML=html;
 }
 
-// AGREGAR MENU
+// CREAR MENU
 function agregarMenu(){
-  const nombreMenu = document.getElementById("nuevoMenu").value.trim();
-  if(!nombreMenu){ alert("Ingrese nombre del menú"); return; }
-
-  fetch(URL_APPSCRIPT,{
-    method:"POST",
-    body: JSON.stringify({
-      usuario: usuarioActual,
-      clave: claveActual,
-      action:"agregarMenu",
-      NombreMenu: nombreMenu
-    })
-  }).then(res=>res.json()).then(res=>{
-    if(res.status==="ok"){
-      document.getElementById("nuevoMenu").value="";
-      cargarMenu();
-    } else alert(res.msg);
-  });
+const nombreMenu=document.getElementById("nuevoMenu").value.trim();
+if(!nombreMenu){alert("Ingrese nombre del menú");return;}
+fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarMenu",NombreMenu:nombreMenu})})
+.then(r=>r.json()).then(r=>{if(r.status==="ok"){document.getElementById("nuevoMenu").value="";cargarMenu();}else alert(r.msg);});
 }
 
-// AGREGAR PROVEEDOR
-function agregarProveedor(menu){
-  const prov = document.getElementById(`prov_${menu}`).value.trim();
-  const desc = document.getElementById(`desc_${menu}`).value.trim();
-  const precio = Number(document.getElementById(`precio_${menu}`).value.trim());
-  if(!prov || !desc || isNaN(precio)){ alert("Complete todos los campos"); return; }
+// AGREGAR ITEM
+function agregarItem(menu){
+const prov=document.getElementById(`prov_${menu}`).value.trim();
+const desc=document.getElementById(`desc_${menu}`).value.trim();
+const precio=Number(document.getElementById(`precio_${menu}`).value.trim());
+if(!prov||!desc||isNaN(precio)){alert("Complete todos los campos");return;}
+fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"agregarItem",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Precio:precio})})
+.then(r=>r.json()).then(r=>{if(r.status==="ok"){document.getElementById(`prov_${menu}`).value="";document.getElementById(`desc_${menu}`).value="";document.getElementById(`precio_${menu}`).value="";cargarMenu();}else alert(r.msg);});
+}
 
-  fetch(URL_APPSCRIPT,{
-    method:"POST",
-    body: JSON.stringify({
-      usuario: usuarioActual,
-      clave: claveActual,
-      action:"agregarProveedor",
-      NombreMenu: menu,
-      Proveedor: prov,
-      Descripcion: desc,
-      Precio: precio
-    })
-  }).then(res=>res.json()).then(res=>{
-    if(res.status==="ok"){
-      document.getElementById(`prov_${menu}`).value="";
-      document.getElementById(`desc_${menu}`).value="";
-      document.getElementById(`precio_${menu}`).value="";
-      cargarMenu();
-    } else alert(res.msg);
-  });
+// VOTAR (al marcar checkbox)
+function actualizarSeleccion(menu,prov,desc,checked){
+fetch(URL_APPSCRIPT,{method:"POST",body:JSON.stringify({usuario:usuarioActual,clave:claveActual,action:"seleccionar",NombreMenu:menu,Proveedor:prov,Descripcion:desc,Seleccionado:checked})})
+.then(r=>r.json()).then(r=>cargarMenu());
+}
+
+// CALCULAR TOTAL por menú
+function calcularTotal(menu){
+const checkboxes=document.querySelectorAll(`.menu h3:contains('${menu}') ~ ul li input`);
+let total=0;
+checkboxes.forEach(c=>{
+if(c.checked)total+=Number(c.parentNode.innerText.split('- $')[1].split(' - ')[0]);
+});
+document.getElementById(`total_${menu}`).innerText=total;
 }
 </script>
 </body>

@@ -292,7 +292,7 @@ async function cargarMenu(){
         const nombres = item.NombreDelVotante || "";
         const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").includes(usuarioActual) : false;
 
-        const estado = item.Estado || "sin";
+        const estado = item.Estado || "sin Desición";
         let color="";
         if(estado==="gana") color="lightgreen";
         else if(estado==="pierde") color="lightcoral";

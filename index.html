@@ -83,8 +83,11 @@ async function cargarMenu(){
         const nombres=item.NombreDelVotante||"";
         const deshabilitado=item.Seleccionado?"deshabilitado":"";
         html+=`<li class="${deshabilitado}">
-          <input type="checkbox" ${item.Seleccionado?'checked':''} ${rol!=="Dirigente"?"disabled":""}
-            onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
+          // solo marca si el usuario actual ya votó
+const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").includes(usuarioActual) : false;
+
+<input type="checkbox" ${votoUsuario ? 'checked' : ''} ${rol !== "Dirigente" ? "disabled" : ""}
+  onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
           ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
         </li>`;
         if(item.Seleccionado) totalMenu+=Number(item.Precio);

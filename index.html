@@ -71,27 +71,41 @@ async function cargarMenu(){
     const res = await fetch(URL_PROXY+"?hoja=Menu");
     const data = await res.json();
     const menus = {};
-    data.forEach(r=>{ if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[]; menus[r.NombreMenu].push(r); });
+    data.forEach(r=>{ 
+      if(!menus[r.NombreMenu]) menus[r.NombreMenu]=[]; 
+      menus[r.NombreMenu].push(r); 
+    });
 
     let html="";
     Object.keys(menus).forEach(menu=>{
       let totalMenu=0;
       html+=`<div class="menu"><h3>${menu}</h3><ul>`;
+
       menus[menu].forEach(item=>{
         if(!item.Proveedor || !item.Descripcion) return; // ignora filas vacías
-        const votos=item.Voto||0;
-        const nombres=item.NombreDelVotante||"";
-        const deshabilitado=item.Seleccionado?"deshabilitado":"";
-        html+=`<li class="${deshabilitado}">
-          // solo marca si el usuario actual ya votó
-const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").includes(usuarioActual) : false;
 
-<input type="checkbox" ${votoUsuario ? 'checked' : ''} ${rol !== "Dirigente" ? "disabled" : ""}
-  onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
+        const votos = item.Voto || 0;
+        const nombres = item.NombreDelVotante || "";
+
+        // Voto del usuario actual
+        const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").includes(usuarioActual) : false;
+
+        // Estado del item: gana/pierde/sin
+        const estado = item.Estado || "sin";
+        let color="";
+        if(estado==="gana") color="lightgreen";
+        else if(estado==="pierde") color="lightcoral";
+
+        html+=`<li style="background:${color}; padding:5px; margin:3px 0;">
+          <input type="checkbox" ${votoUsuario ? 'checked' : ''} ${rol !== "Dirigente" ? "disabled" : ""}
+            onchange="actualizarSeleccion('${menu}','${item.Proveedor}','${item.Descripcion}',this.checked)">
           ${item.Proveedor} - ${item.Descripcion} - $${item.Precio} - Votos: ${votos} (${nombres})
+          ${rol==="Dirigente" ? `<button onclick="cambiarEstado('${menu}','${item.Proveedor}','${item.Descripcion}')">${estado}</button>` : ''}
         </li>`;
-        if(item.Seleccionado) totalMenu+=Number(item.Precio);
+
+        if(estado === "gana") totalMenu += Number(item.Precio || 0);
       });
+
       html+="</ul>";
       html+=`<h4>Total del Menú: $<span id="total_${menu}">${totalMenu}</span></h4>`;
 
@@ -109,9 +123,13 @@ const votoUsuario = item.NombreDelVotante ? item.NombreDelVotante.split(",").inc
     });
 
     document.getElementById("menuContainer").innerHTML=html;
-  }catch(err){ console.error(err); alert("Error cargando menús"); }
-}
 
+  }catch(err){ 
+    console.error(err); 
+    alert("Error cargando menús"); 
+  }
+}
+  
 // CREAR MENU
 function agregarMenu(){
   const nombreMenu=document.getElementById("nuevoMenu").value.trim();

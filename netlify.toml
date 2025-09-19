@@ -1,0 +1,6 @@
+[build]
+  publish = "."           # carpeta donde está tu index.html
+  functions = "netlify/functions"  # carpeta con proxy.js
+
+[dev]
+  functions = "netlify/functions"

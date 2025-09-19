@@ -492,5 +492,51 @@ function hideLoader() {
   loader.classList.add("hidden");
 }
 </script>
+  <script>
+  // ...todas tus funciones existentes...
+
+  // ===== POLLING PARA ACTUALIZAR MENÚ EN TIEMPO REAL =====
+  let menuCache = {}; // guarda el último estado de cada item
+
+  async function actualizarMenuRealtime() {
+    try {
+      const res = await fetch(URL_PROXY + "?hoja=Menu");
+      const data = await res.json();
+
+      const nuevaCache = {};
+      data.forEach(item => {
+        const key = `${item.NombreMenu}|${item.Proveedor}|${item.Descripcion}`;
+        nuevaCache[key] = {
+          Voto: item.Voto,
+          Estado: item.Estado,
+          NombreDelVotante: item.NombreDelVotante
+        };
+      });
+
+      let hayCambios = false;
+      for (const key in nuevaCache) {
+        if (!menuCache[key] ||
+            menuCache[key].Voto !== nuevaCache[key].Voto ||
+            menuCache[key].Estado !== nuevaCache[key].Estado ||
+            menuCache[key].NombreDelVotante !== nuevaCache[key].NombreDelVotante) {
+          hayCambios = true;
+          break;
+        }
+      }
+
+      if (hayCambios) {
+        cargarMenu();
+        menuCache = nuevaCache;
+      }
+
+    } catch (err) {
+      console.error("Error en polling:", err);
+    }
+  }
+
+  // iniciar polling cada 3 segundos
+  setInterval(actualizarMenuRealtime, 3000);
+</script>
+
 </body>
 </html>

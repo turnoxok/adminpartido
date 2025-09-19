@@ -5,15 +5,15 @@
 <title>Evento Rugby - Menú</title>
 <style>
   body { font-family: 'Courier New', monospace; background: #f0e6d2; color:#222; padding:20px;}
-  h1,h2,h3 { text-align:center; }
+  h1,h2,h3,h4 { text-align:center; margin:5px 0;}
   input, button { font-family: 'Courier New', monospace; padding:5px; margin:5px; border-radius:4px; border:1px solid #555;}
   button { background:#cda34d; color:#fff; cursor:pointer; }
   button:hover { background:#b5892f; }
-  .menu { background:#fff0d4; padding:10px; margin:10px 0; border:1px solid #cda34d; border-radius:6px;}
+  .menu { background:#fff0d4; padding:10px; margin:15px 0; border:1px solid #cda34d; border-radius:6px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);}
   ul { list-style:none; padding-left:0; }
   li { padding:4px 0; }
   input[type=radio] { margin-right:5px; }
-  .form-agregar { margin:10px 0; }
+  .form-agregar { margin:10px 0; text-align:center; }
   #app { display:none; }
 </style>
 </head>
@@ -80,9 +80,9 @@ async function cargarMenu(){
     let totalMenu = 0;
     html+=`<div class="menu"><h3>${menu}</h3><ul>`;
     menus[menu].forEach(item=>{
-      const disabled = rol!=="dirigente" || item.Seleccionado ? "disabled" : "";
+      const disabled = rol!=="dirigente" ? "disabled" : "";
       const checked = item.Seleccionado ? "checked" : "";
-      if(item.Seleccionado) totalMenu+=Number(item.Precio);
+      if(item.Seleccionado) totalMenu += Number(item.Precio);
       html+=`<li>
         <input type="radio" name="${menu}" ${disabled} ${checked} onchange="seleccionar('${menu}','${item.Proveedor}')">
         ${item.Proveedor} - ${item.Descripcion} - $${item.Precio}
@@ -130,7 +130,6 @@ function agregarMenu(){
   const nombreMenu = document.getElementById("nuevoMenu").value.trim();
   if(!nombreMenu){ alert("Ingrese nombre del menú"); return; }
 
-  // Agregar una fila vacía al WebApp (solo nombreMenu)
   fetch(URL_APPSCRIPT,{
     method:"POST",
     body: JSON.stringify({

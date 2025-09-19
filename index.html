@@ -19,7 +19,7 @@ input[type=checkbox]{margin-right:5px;}
 </style>
 </head>
 <body>
-<h1>Evento Rugby - Menú</h1>
+
 
 <div id="login">
 <h2>Login</h2>
@@ -32,9 +32,9 @@ input[type=checkbox]{margin-right:5px;}
 <h2>Bienvenido <span id="rolText"></span></h2>
 
 <div id="formAgregarMenu" class="form-agregar" style="display:none;">
-<h3>Crear Menú</h3>
-<input id="nuevoMenu" placeholder="Nombre del Menú">
-<button onclick="agregarMenu()">Agregar Menú</button>
+<h3>Fijación de precios</h3>
+<input id="nuevoMenu" placeholder="Item a Disputar">
+<button onclick="agregarMenu()">Crear</button>
 </div>
 
 <div id="menuContainer"></div>
@@ -57,7 +57,7 @@ async function login(){
     const data = await res.json();
     if(data.status==="ok"){
       rol=data.rol;
-      document.getElementById("rolText").innerText=rol;
+      document.getElementById("rolText").innerText = usuarioActual;
       document.getElementById("login").style.display="none";
       document.getElementById("app").style.display="block";
       if(rol==="Dirigente")document.getElementById("formAgregarMenu").style.display="block";

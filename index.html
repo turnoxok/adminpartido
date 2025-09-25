@@ -126,11 +126,30 @@ h1, h2, h3, h4 {
 ul {
   list-style: none;
   padding-left: 0;
+  display: flex;
+  flex-wrap: wrap; /* 👈 permite que los ítems bajen cuando no entran */
+  gap: 8px;        /* 👈 separa los ítems */
 }
 
 li {
-  padding: 6px 0;
+  flex: 1 1 100%;  /* 👈 en pantallas chicas ocupan todo el ancho */
+  padding: 6px 8px;
   line-height: 1.4;
+  border-radius: 6px;
+  word-break: break-word; /* 👈 evita que textos largos rompan el diseño */
+}
+
+/* En pantallas grandes que se vean en varias columnas */
+@media (min-width: 768px) {
+  li {
+    flex: 1 1 calc(50% - 8px); /* 👈 2 columnas */
+  }
+}
+
+@media (min-width: 1024px) {
+  li {
+    flex: 1 1 calc(33% - 8px); /* 👈 3 columnas */
+  }
 }
 
 input[type=checkbox] {
@@ -189,9 +208,7 @@ button:hover {
     margin: 10px 0;
   }
 
-  li {
-    font-size: 14px;
-  }
+  
 
   #login {
     padding: 15px;
